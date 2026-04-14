@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UiTM R3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-critical {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .img-container {
+            cursor: crosshair;
+            overflow: hidden;
+            position: relative;
+            background-color: #000;
+        }
+
+        .zoom-lens {
+            position: absolute;
+            border: 1px solid #fff;
+            width: 150px;
+            height: 150px;
+            pointer-events: none;
+            display: none;
+            background-repeat: no-repeat;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+            border-radius: 4px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4">
+        <div class="glass-card p-8 rounded-2xl w-full max-w-md shadow-2xl border border-slate-700">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-900/20">
+                    <i class="fas fa-x-ray text-3xl text-white"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white uppercase tracking-tighter">UiTM R3</h1>
+                <p class="text-slate-400 mt-2 font-medium">Rapid Reporting Simulator</p>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Student / Staff ID</label>
+                    <input type="text" id="username" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Enter ID">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Access Key</label>
+                    <input type="password" id="password" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Enter access key">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg shadow-blue-900/20 active:scale-95">
+                    Enter Portal
+                </button>
+            </form>
+            <p id="login-error" class="hidden text-red-400 text-xs mt-4 text-center font-bold"></p>
+        </div>
+    </div>
+
+    <!-- Main App Content -->
+    <div id="app-content" class="hidden flex-1 flex flex-col">
+        <header class="h-16 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-900/50">
+            <div class="flex items-center space-x-4">
+                <span class="font-bold text-blue-400 tracking-tighter text-xl">UiTM R3</span>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <span id="user-display" class="text-slate-400 text-sm"></span>
+            </div>
+            
+            <div class="flex items-center space-x-8">
+                <div class="text-center">
+                    <div id="timer" class="text-xl font-mono font-bold tracking-wider text-white">35:00</div>
+                    <div class="text-[10px] uppercase text-slate-500 font-bold">Time Remaining</div>
+                </div>
+                <button id="logout-btn" class="text-slate-400 hover:text-white transition-colors p-2">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard View -->
+        <main id="dashboard-view" class="flex-1 p-8 overflow-y-auto">
+            <div class="max-w-4xl mx-auto space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6 rounded-xl">
+                        <h3 class="text-slate-400 text-xs font-bold uppercase mb-2 tracking-widest">Total Done</h3>
+                        <p class="text-3xl font-bold" id="stats-total">0</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-xl border-l-4 border-l-blue-500">
+                        <h3 class="text-slate-400 text-xs font-bold uppercase mb-2 tracking-widest">Average Score</h3>
+                        <p class="text-3xl font-bold" id="stats-avg">0/30</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-xl border-l-4 border-l-green-500">
+                        <h3 class="text-slate-400 text-xs font-bold uppercase mb-2 tracking-widest">Highest Score</h3>
+                        <p class="text-3xl font-bold" id="stats-best">0/30</p>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <h2 class="text-xl font-bold">Reporting Practice Sets</h2>
+                        <span class="text-sm text-slate-400" id="total-sets-count">Loading sets...</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="sets-list"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Simulator View -->
+        <main id="simulator-view" class="hidden flex-1 flex flex-col md:flex-row bg-slate-950 overflow-hidden">
+            <div class="flex-1 relative bg-black flex items-center justify-center p-4">
+                <div id="img-container" class="img-container max-w-full max-h-full">
+                    <img id="case-image" src="" alt="Radiograph" class="max-w-full max-h-[80vh] object-contain shadow-2xl" ondragstart="return false;">
+                    <div id="zoom-lens" class="zoom-lens"></div>
+                </div>
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur rounded-full px-6 py-2 flex items-center space-x-6 border border-slate-700">
+                    <button id="prev-case" class="text-slate-400 hover:text-white p-2"><i class="fas fa-chevron-left"></i></button>
+                    <span class="text-sm font-bold w-20 text-center text-white">Case <span id="current-case-num">1</span> / 30</span>
+                    <button id="next-case" class="text-slate-400 hover:text-white p-2"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div class="w-full md:w-80 bg-slate-900 border-l border-slate-800 flex flex-col">
+                <div class="p-6 flex-1 space-y-6 overflow-y-auto">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-500 uppercase mb-4 tracking-widest">Assessment</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-normal" class="py-4 rounded-xl border-2 border-slate-700 bg-slate-800 font-bold transition-all text-sm">NORMAL</button>
+                            <button id="btn-abnormal" class="py-4 rounded-xl border-2 border-slate-700 bg-slate-800 font-bold transition-all text-sm">ABNORMAL</button>
+                        </div>
+                    </div>
+                    <div id="observation-container" class="hidden">
+                        <h3 class="text-sm font-bold text-slate-500 uppercase mb-4 tracking-widest">Observations</h3>
+                        <textarea id="observation-text" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Describe findings..."></textarea>
+                    </div>
+                    <div class="pt-6 border-t border-slate-800">
+                        <button id="submit-packet" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors">SUBMIT ALL</button>
+                    </div>
+                </div>
+                <div class="p-4 grid grid-cols-6 gap-1 bg-slate-800/50 border-t border-slate-700" id="nav-grid"></div>
+            </div>
+        </main>
+
+        <!-- Results View -->
+        <main id="results-view" class="hidden flex-1 p-8 overflow-y-auto">
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-card p-8 rounded-3xl text-center mb-8 border-b-4 border-b-blue-600">
+                    <h2 class="text-2xl text-slate-400 mb-2 font-medium">Session Results</h2>
+                    <div class="text-7xl font-black text-white mb-4" id="final-score">0.0 / 30</div>
+                    <button onclick="app.showDashboard()" class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-full font-bold transition-all shadow-lg shadow-blue-900/30">Return to Dashboard</button>
+                </div>
+                <div class="space-y-2" id="results-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /**
+         * 1. ACCESS KEY: Change 'UiTM2024' to whatever secret key you want.
+         */
+        const MASTER_ACCESS_KEY = "UiTM2024";
+
+        /**
+         * 2. PACKETS_DATA: This is where you add your sets.
+         * To add a new set, just follow the pattern. You can have as many as you want.
+         */
+        const PACKETS_DATA = {
+            "Set 1": [
+                { img: "https://picsum.photos/seed/uitm1-1/1200/1600?grayscale", isNormal: true, correctObservation: "No abnormality detected." },
+                { img: "https://picsum.photos/seed/uitm1-2/1200/1600?grayscale", isNormal: false, correctObservation: "Radial head fracture." },
+                // Add up to 30 cases for each set...
+            ],
+            "Set 2": [],
+            "Set 3": [],
+            "Set 4": [],
+            "Set 5": [],
+            "Set 6": [],
+            "Set 7": [],
+            "Set 8": [],
+            "Set 9": [],
+            "Set 10": [],
+            // You can add "Set 11": [], here later!
+        };
+
+        // AUTO-FILLER: This ensures every set has 30 items for the demo
+        Object.keys(PACKETS_DATA).forEach(setId => {
+            const set = PACKETS_DATA[setId];
+            while (set.length < 30) {
+                const isN = Math.random() > 0.4;
+                set.push({
+                    img: `https://picsum.photos/seed/uitm${setId}-${set.length}/1200/1600?grayscale`,
+                    isNormal: isN,
+                    correctObservation: isN ? "Normal." : "Significant pathology."
+                });
+            }
+        });
+
+        const app = {
+            currentUser: null,
+            currentSet: null,
+            currentCaseIdx: 0,
+            timer: 35 * 60,
+            timerInterval: null,
+            stats: { total: 0, best: 0, totalPoints: 0 },
+
+            init() {
+                this.setupEventListeners();
+                this.renderNavGrid();
+                this.updateTotalSetsCount();
+            },
+
+            setupEventListeners() {
+                document.getElementById('login-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    this.validateLogin();
+                };
+                document.getElementById('btn-normal').onclick = () => this.handleAssessment('normal');
+                document.getElementById('btn-abnormal').onclick = () => this.handleAssessment('abnormal');
+                document.getElementById('prev-case').onclick = () => this.jumpToCase(this.currentCaseIdx - 1);
+                document.getElementById('next-case').onclick = () => this.jumpToCase(this.currentCaseIdx + 1);
+                document.getElementById('submit-packet').onclick = () => { if(confirm("Submit all findings?")) this.endSession(); };
+                document.getElementById('logout-btn').onclick = () => location.reload();
+
+                const container = document.getElementById('img-container');
+                const img = document.getElementById('case-image');
+                const lens = document.getElementById('zoom-lens');
+
+                container.onmousemove = (e) => {
+                    lens.style.display = 'block';
+                    const rect = img.getBoundingClientRect();
+                    let x = e.clientX - rect.left, y = e.clientY - rect.top;
+                    x = Math.max(0, Math.min(x, img.width));
+                    y = Math.max(0, Math.min(y, img.height));
+                    lens.style.left = (x - 75) + "px";
+                    lens.style.top = (y - 75) + "px";
+                    const ratio = 2.5;
+                    lens.style.backgroundImage = `url(${img.src})`;
+                    lens.style.backgroundSize = (img.width * ratio) + "px " + (img.height * ratio) + "px";
+                    lens.style.backgroundPosition = "-" + (x * ratio - 75) + "px -" + (y * ratio - 75) + "px";
+                };
+                container.onmouseleave = () => lens.style.display = 'none';
+            },
+
+            validateLogin() {
+                const user = document.getElementById('username').value.trim();
+                const pass = document.getElementById('password').value;
+                const error = document.getElementById('login-error');
+
+                if (pass === MASTER_ACCESS_KEY) {
+                    this.login(user);
+                } else {
+                    error.innerText = "Invalid Access Key. Please contact the administrator.";
+                    error.classList.remove('hidden');
+                }
+            },
+
+            login(username) {
+                this.currentUser = username;
+                document.getElementById('auth-overlay').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                document.getElementById('user-display').innerText = username;
+                this.loadStats();
+                this.showDashboard();
+            },
+
+            loadStats() {
+                const saved = localStorage.getItem(`uitm_r3_stats_${this.currentUser}`);
+                if(saved) {
+                    this.stats = JSON.parse(saved);
+                    this.updateStatsUI();
+                }
+            },
+
+            updateStatsUI() {
+                document.getElementById('stats-total').innerText = this.stats.total;
+                document.getElementById('stats-best').innerText = this.stats.best.toFixed(1) + "/30";
+                const avg = this.stats.total > 0 ? (this.stats.totalPoints / this.stats.total) : 0;
+                document.getElementById('stats-avg').innerText = avg.toFixed(1) + "/30";
+            },
+
+            updateTotalSetsCount() {
+                const count = Object.keys(PACKETS_DATA).length;
+                document.getElementById('total-sets-count').innerText = `${count} Sets Available`;
+            },
+
+            showDashboard() {
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                document.getElementById('simulator-view').classList.add('hidden');
+                document.getElementById('results-view').classList.add('hidden');
+                const list = document.getElementById('sets-list');
+                list.innerHTML = '';
+                
+                Object.keys(PACKETS_DATA).forEach(key => {
+                    const div = document.createElement('div');
+                    div.className = "glass-card p-4 rounded-xl flex flex-col items-center justify-between border border-slate-700 hover:border-blue-500 transition-all group";
+                    div.innerHTML = `
+                        <div class="bg-blue-600/10 text-blue-400 w-12 h-12 rounded-full flex items-center justify-center font-bold mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            ${key.replace('Set ', '')}
+                        </div>
+                        <div class="text-center mb-4">
+                            <div class="font-bold text-sm">${key}</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest">30 Cases</div>
+                        </div>
+                        <button onclick="app.startPacket('${key}')" class="w-full bg-slate-800 hover:bg-blue-600 text-white py-2 rounded-lg text-xs font-bold transition-all">
+                            START PRACTICE
+                        </button>`;
+                    list.appendChild(div);
+                });
+            },
+
+            startPacket(key) {
+                this.currentSet = PACKETS_DATA[key].map(c => ({ ...c, userAssessment: null, userObservation: "" }));
+                this.currentCaseIdx = 0;
+                this.timer = 35 * 60;
+                document.getElementById('dashboard-view').classList.add('hidden');
+                document.getElementById('simulator-view').classList.remove('hidden');
+                this.renderCase();
+                this.startTimer();
+            },
+
+            renderCase() {
+                const c = this.currentSet[this.currentCaseIdx];
+                document.getElementById('case-image').src = c.img;
+                document.getElementById('current-case-num').innerText = this.currentCaseIdx + 1;
+                
+                const normalBtn = document.getElementById('btn-normal');
+                const abnormalBtn = document.getElementById('btn-abnormal');
+                const obsContainer = document.getElementById('observation-container');
+                const obsText = document.getElementById('observation-text');
+
+                [normalBtn, abnormalBtn].forEach(b => b.className = "py-4 rounded-xl border-2 border-slate-700 bg-slate-800 font-bold transition-all text-sm");
+                
+                if(c.userAssessment === 'normal') {
+                    normalBtn.classList.add('border-blue-500', 'bg-blue-500/20');
+                    obsContainer.classList.add('hidden');
+                } else if(c.userAssessment === 'abnormal') {
+                    abnormalBtn.classList.add('border-red-500', 'bg-red-500/20');
+                    obsContainer.classList.remove('hidden');
+                    obsText.value = c.userObservation;
+                } else {
+                    obsContainer.classList.add('hidden');
+                    obsText.value = "";
+                }
+
+                obsText.oninput = (e) => { c.userObservation = e.target.value; this.updateNavDots(); };
+                this.updateNavDots();
+            },
+
+            handleAssessment(type) {
+                this.currentSet[this.currentCaseIdx].userAssessment = type;
+                this.renderCase();
+            },
+
+            jumpToCase(idx) {
+                if(idx < 0 || idx >= 30) return;
+                this.currentCaseIdx = idx;
+                this.renderCase();
+            },
+
+            renderNavGrid() {
+                const grid = document.getElementById('nav-grid');
+                grid.innerHTML = '';
+                for(let i=0; i<30; i++) {
+                    const btn = document.createElement('button');
+                    btn.id = `nav-case-${i}`;
+                    btn.className = "h-8 rounded text-[10px] font-bold bg-slate-700 text-slate-400 transition-all";
+                    btn.innerText = i + 1;
+                    btn.onclick = () => this.jumpToCase(i);
+                    grid.appendChild(btn);
+                }
+            },
+
+            updateNavDots() {
+                this.currentSet.forEach((c, i) => {
+                    const dot = document.getElementById(`nav-case-${i}`);
+                    dot.className = "h-8 rounded text-[10px] font-bold transition-all border border-transparent ";
+                    if(i === this.currentCaseIdx) dot.classList.add('ring-2', 'ring-white');
+                    if(c.userAssessment === 'normal') dot.classList.add('bg-blue-600', 'text-white');
+                    else if(c.userAssessment === 'abnormal') dot.classList.add('bg-red-600', 'text-white');
+                    else dot.classList.add('bg-slate-700', 'text-slate-400');
+                });
+            },
+
+            startTimer() {
+                clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => {
+                    this.timer--;
+                    const mins = Math.floor(this.timer/60), secs = this.timer%60;
+                    const timerEl = document.getElementById('timer');
+                    timerEl.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                    if(this.timer <= 300) timerEl.classList.add('timer-critical');
+                    else timerEl.classList.remove('timer-critical');
+                    if(this.timer <= 0) this.endSession();
+                }, 1000);
+            },
+
+            endSession() {
+                clearInterval(this.timerInterval);
+                let score = 0;
+                this.currentSet.forEach(c => {
+                    const correctType = c.isNormal ? 'normal' : 'abnormal';
+                    if(c.userAssessment === correctType) score += 1;
+                });
+
+                this.stats.total++;
+                this.stats.totalPoints += score;
+                this.stats.best = Math.max(this.stats.best, score);
+                localStorage.setItem(`uitm_r3_stats_${this.currentUser}`, JSON.stringify(this.stats));
+                this.updateStatsUI();
+
+                document.getElementById('simulator-view').classList.add('hidden');
+                document.getElementById('results-view').classList.remove('hidden');
+                document.getElementById('final-score').innerText = `${score.toFixed(1)} / 30`;
+
+                const list = document.getElementById('results-list');
+                list.innerHTML = '';
+                this.currentSet.forEach((c, i) => {
+                    const isCorrect = (c.isNormal && c.userAssessment === 'normal') || (!c.isNormal && c.userAssessment === 'abnormal');
+                    const div = document.createElement('div');
+                    div.className = `glass-card p-3 rounded-xl border-l-4 ${isCorrect ? 'border-l-green-500' : 'border-l-red-500'} flex justify-between items-center`;
+                    div.innerHTML = `<div><span class="text-slate-500 mr-2 font-mono text-[10px]">#${(i+1).toString().padStart(2,'0')}</span> <b class="text-sm">${c.isNormal ? 'Normal' : 'Abnormal'}</b></div>
+                                     <div class="text-[10px] italic text-slate-400 text-right max-w-[60%]">${c.correctObservation}</div>`;
+                    list.appendChild(div);
+                });
+            }
+        };
+
+        window.app = app;
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
