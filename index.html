@@ -199,36 +199,43 @@
         const MASTER_ACCESS_KEY = "UiTM2024";
 
         /**
+         * SETTINGS: 
+         * Change 'IMAGE_FOLDER_NAME' if you rename your folder on GitHub.
+         * Example: Change "R3%20images" to "New%20Images"
+         */
+        const IMAGE_FOLDER_NAME = "R3%20images";
+
+        /**
          * PACKETS_DATA
          * Updated to 25 cases per set as requested.
          */
         const PACKETS_DATA = {
             "Set 1": [
-                { img: "R3%20images/Set%201/case1.jpg", isNormal: true, correctObservation: "Normal. (foot)" },
-                { img: "R3%20images/Set%201/case2.jpg", isNormal: false, correctObservation: "Rt clavicle fracture" },
-                { img: "R3%20images/Set%201/case3.jpg", isNormal: true, correctObservation: "Normal. (lat cervical)" },
-                { img: "R3%20images/Set%201/case4.jpg", isNormal: true, correctObservation: "Normal. (paeds cxr)" },
-                { img: "R3%20images/Set%201/case5.jpg", isNormal: false, correctObservation: "Torus fracture distal left radius" },
-                { img: "R3%20images/Set%201/case6.jpg", isNormal: false, correctObservation: "L1 fracture" },
-                { img: "R3%20images/Set%201/case7.jpg", isNormal: true, correctObservation: "Normal. (Calcaneal spur- ankle)" },
-                { img: "R3%20images/Set%201/case8.jpg", isNormal: false, correctObservation: "Right Clavicle and scapula fractures" },
-                { img: "R3%20images/Set%201/case9.jpg", isNormal: false, correctObservation: "Left Radial head fracture" },
-                { img: "R3%20images/Set%201/case10.jpg", isNormal: false, correctObservation: "Left Medial malleolus fracture" },
-                { img: "R3%20images/Set%201/case11.jpg", isNormal: false, correctObservation: "Fracture proximal part or middle phalanx of Left ring finger" },
-                { img: "R3%20images/Set%201/case12.jpg", isNormal: false, correctObservation: "Calcified pelvic mass" },
-                { img: "R3%20images/Set%201/case13.jpg", isNormal: true, correctObservation: "Normal. (tib fib)" },
-                { img: "R3%20images/Set%201/case14.jpg", isNormal: false, correctObservation: "Dislocation of right 2nd and 3rd CMC jts" },
-                { img: "R3%20images/Set%201/case15.jpg", isNormal: false, correctObservation: "Right Big toe proximal phalanx #" },
-                { img: "R3%20images/Set%201/case16.jpg", isNormal: false, correctObservation: "Ant shoulder dislocation" },
-                { img: "R3%20images/Set%201/case17.jpg", isNormal: false, correctObservation: "Right Supracondylar fracture" },
-                { img: "R3%20images/Set%201/case18.jpg", isNormal: true, correctObservation: "Normal. (AP hand)" },
-                { img: "R3%20images/Set%201/case19.jpg", isNormal: false, correctObservation: "# distal phalanx of index finger +/- # metacarpal index finger" },
-                { img: "R3%20images/Set%201/case20.jpg", isNormal: false, correctObservation: "Pneumoperitoneum +/- Rt renal calculi" },
-                { img: "R3%20images/Set%201/case21.jpg", isNormal: false, correctObservation: "RUL collapse" },
-                { img: "R3%20images/Set%201/case22.jpg", isNormal: true, correctObservation: "Normal. (AP radius ulnar)" },
-                { img: "R3%20images/Set%201/case23.jpg", isNormal: true, correctObservation: "Normal. (AP elbow)" },
-                { img: "R3%20images/Set%201/case24.jpg", isNormal: true, correctObservation: "Normal. (AP foot)" },
-                { img: "R3%20images/Set%201/case25.jpg", isNormal: true, correctObservation: "Normal. (AP ankle)" }
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case1.jpg`, isNormal: true, correctObservation: "Normal. (foot)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case2.jpg`, isNormal: false, correctObservation: "Rt clavicle fracture" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case3.jpg`, isNormal: true, correctObservation: "Normal. (lat cervical)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case4.jpg`, isNormal: true, correctObservation: "Normal. (paeds cxr)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case5.jpg`, isNormal: false, correctObservation: "Torus fracture distal left radius" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case6.jpg`, isNormal: false, correctObservation: "L1 fracture" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case7.jpg`, isNormal: true, correctObservation: "Normal. (Calcaneal spur- ankle)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case8.jpg`, isNormal: false, correctObservation: "Right Clavicle and scapula fractures" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case9.jpg`, isNormal: false, correctObservation: "Left Radial head fracture" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case10.jpg`, isNormal: false, correctObservation: "Left Medial malleolus fracture" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case11.jpg`, isNormal: false, correctObservation: "Fracture proximal part or middle phalanx of Left ring finger" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case12.jpg`, isNormal: false, correctObservation: "Calcified pelvic mass" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case13.jpg`, isNormal: true, correctObservation: "Normal. (tib fib)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case14.jpg`, isNormal: false, correctObservation: "Dislocation of right 2nd and 3rd CMC jts" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case15.jpg`, isNormal: false, correctObservation: "Right Big toe proximal phalanx #" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case16.jpg`, isNormal: false, correctObservation: "Ant shoulder dislocation" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case17.jpg`, isNormal: false, correctObservation: "Right Supracondylar fracture" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case18.jpg`, isNormal: true, correctObservation: "Normal. (AP hand)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case19.jpg`, isNormal: false, correctObservation: "# distal phalanx of index finger +/- # metacarpal index finger" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case20.jpg`, isNormal: false, correctObservation: "Pneumoperitoneum +/- Rt renal calculi" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case21.jpg`, isNormal: false, correctObservation: "RUL collapse" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case22.jpg`, isNormal: true, correctObservation: "Normal. (AP radius ulnar)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case23.jpg`, isNormal: true, correctObservation: "Normal. (AP elbow)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case24.jpg`, isNormal: true, correctObservation: "Normal. (AP foot)" },
+                { img: `${IMAGE_FOLDER_NAME}/Set%201/case25.jpg`, isNormal: true, correctObservation: "Normal. (AP ankle)" }
             ],
             "Set 2": [], "Set 3": [], "Set 4": [], "Set 5": [], "Set 6": [], "Set 7": [], "Set 8": [], "Set 9": [], "Set 10": []
         };
