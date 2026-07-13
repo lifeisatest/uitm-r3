@@ -14,6 +14,9 @@
             background-color: #0f172a;
             color: #f8fafc;
             user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         .glass-card {
@@ -54,13 +57,56 @@
             background-color: #000;
         }
 
+        /* Anti-Screenshot Overlay Watermark */
+        .watermark-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            opacity: 0.04; /* REDUCED: Made extremely faint so X-ray detail remains 100% readable */
+            z-index: 40;
+            user-select: none;
+        }
+
+        .watermark-text {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem; /* REDUCED: Keeps letters small and non-obstructive */
+            font-weight: 400; /* THINNER: Thin font weight ensures X-ray details behind are not blocked */
+            color: #ffffff;
+            transform: rotate(-30deg);
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col transition-all duration-300">
+
+    <!-- Custom System Toast Notifications (Replaces alert()) -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[200] space-y-2 pointer-events-none"></div>
+
+    <!-- Custom Action Confirmation Modal (Replaces confirm()) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-700 text-center">
+            <div class="w-12 h-12 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Submit All Findings?</h3>
+            <p class="text-slate-400 text-xs mb-6">Are you sure you want to finalize and submit all cases for this set? You cannot edit your answers after submitting.</p>
+            <div class="flex space-x-3 justify-center">
+                <button id="confirm-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold text-white transition-all">Cancel</button>
+                <button id="confirm-ok" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-semibold text-white transition-all">Submit</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4">
@@ -72,7 +118,6 @@
                 <h1 class="text-3xl font-bold text-white uppercase tracking-tighter">UiTM R3</h1>
                 <p class="text-slate-400 mt-2 font-medium">Rapid Reporting Simulator</p>
                 
-                <!-- NEW/UPDATED UI: Live online user counter indicator badge on login screen -->
                 <div class="inline-flex items-center space-x-1.5 text-[11px] bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-green-400 mt-4 mx-auto">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                     <span><span id="live-count-login">1</span> active online</span>
@@ -104,7 +149,6 @@
                 <div class="h-4 w-px bg-slate-700"></div>
                 <span id="user-display" class="text-slate-400 text-sm"></span>
                 
-                <!-- NEW/UPDATED UI: Live online user counter indicator badge inside the workspace header -->
                 <div class="flex items-center space-x-1.5 text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-green-400">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                     <span><span id="live-count-dash">1</span> active</span>
@@ -156,6 +200,8 @@
                 <div id="img-container" class="img-container max-w-full max-h-full">
                     <img id="case-image" src="" alt="Radiograph" class="max-w-full max-h-[80vh] object-contain shadow-2xl" ondragstart="return false;">
                     <div id="zoom-lens" class="zoom-lens"></div>
+                    <!-- Anti-Screenshot Watermark Layer -->
+                    <div id="watermark-overlay" class="watermark-overlay"></div>
                 </div>
                 <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur rounded-full px-6 py-2 flex items-center space-x-6 border border-slate-700">
                     <button id="prev-case" class="text-slate-400 hover:text-white p-2"><i class="fas fa-chevron-left"></i></button>
@@ -215,6 +261,7 @@
         const MASTER_ACCESS_KEY = "UiTM2024";
         const IMAGE_FOLDER_NAME = "R3%20images";
 
+        // Structured Medical Cases Database
         const PACKETS_DATA = {
            "Set 1": [
                 { img: "IMAGE_FOLDER_NAME/Set%201/case1.jpg", isNormal: true, correctObservation: "Normal. (foot)" },
@@ -502,8 +549,7 @@
             }
         });
 
-        // 🚨 CONFIGURATION STEP FOR GITHUB: 
-        // Your real-time Firebase credentials have been applied successfully below!
+        // Firebase Web App Live Real-Time DB Credentials
         const MY_GITHUB_FIREBASE_CONFIG = {
             apiKey: "AIzaSyA7RveexH-YJon181UdGlLq5vLCKdY9fEQ",
             authDomain: "uitm-r3.firebaseapp.com",
@@ -519,7 +565,7 @@
         try {
             if (typeof __firebase_config !== 'undefined') {
                 firebaseConfig = JSON.parse(__firebase_config);
-            } else if (MY_GITHUB_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_FIREBASE_CONFIG_HERE") {
+            } else if (MY_GITHUB_FIREBASE_CONFIG.apiKey && MY_GITHUB_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_FIREBASE_CONFIG_HERE") {
                 firebaseConfig = MY_GITHUB_FIREBASE_CONFIG;
             }
         } catch (e) {
@@ -539,9 +585,11 @@
             timerInterval: null,
             stats: { total: 0, best: -999, totalPoints: 0 },
             isZooming: false,
+            confirmCallback: null,
 
             init() {
                 this.setupEventListeners();
+                this.setupSecurityEventListeners();
                 this.renderNavGrid();
                 this.updateTotalSetsCount();
                 this.initPresenceTracking(); // Begins real active session synchronization
@@ -646,7 +694,89 @@
                 if (dashCounter) dashCounter.innerText = count;
             },
 
+            setupSecurityEventListeners() {
+                // 1. Right-Click context menu blocking
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.showToast("Right-click inspection is disabled to protect radiology assets.");
+                    return false;
+                });
+
+                // 2. Lock down diagnostic shortcut attempts (Ctrl+S, Ctrl+P, F12, developer panel)
+                window.addEventListener('keydown', (e) => {
+                    // Block F12 and developer panels
+                    if (e.key === 'F12' || 
+                        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+                        (e.ctrlKey && e.key === 'u')) {
+                        e.preventDefault();
+                        this.showToast("Developer console tools are blocked on this exam portal.");
+                        return false;
+                    }
+                    // Block Saving (Ctrl+S) and Printing (Ctrl+P)
+                    if (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'S' || e.key === 'P')) {
+                        e.preventDefault();
+                        this.showToast("Printing and saving local copies is restricted.");
+                        return false;
+                    }
+                    // Block Print-screen keystroke detection
+                    if (e.key === 'PrintScreen') {
+                        navigator.clipboard.writeText(''); // Attempt to empty immediate clipboard
+                        this.showToast("Screenshot print commands have been restricted.");
+                        return false;
+                    }
+                });
+
+                // 3. Screen Blur protection when switching tabs/windows (detecting screenshot capture applications)
+                window.addEventListener('blur', () => {
+                    document.body.style.filter = "blur(20px)";
+                    document.body.style.transition = "filter 0.1s ease";
+                });
+
+                window.addEventListener('focus', () => {
+                    document.body.style.filter = "none";
+                });
+            },
+
+            showToast(message) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = "bg-slate-900 border border-red-500/30 text-red-400 text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0";
+                toast.innerHTML = `<i class="fas fa-shield-alt text-red-500"></i><span>${message}</span>`;
+                container.appendChild(toast);
+                
+                // Animate entry
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                }, 50);
+
+                // Auto-delete
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            },
+
+            showConfirm(onConfirm) {
+                const modal = document.getElementById('confirm-modal');
+                modal.classList.remove('hidden');
+                this.confirmCallback = onConfirm;
+            },
+
             setupEventListeners() {
+                // Custom confirmation actions
+                document.getElementById('confirm-cancel').onclick = () => {
+                    document.getElementById('confirm-modal').classList.add('hidden');
+                    this.confirmCallback = null;
+                };
+
+                document.getElementById('confirm-ok').onclick = () => {
+                    document.getElementById('confirm-modal').classList.add('hidden');
+                    if (this.confirmCallback) {
+                        this.confirmCallback();
+                    }
+                    this.confirmCallback = null;
+                };
+
                 document.getElementById('login-form').onsubmit = (e) => {
                     e.preventDefault();
                     this.validateLogin();
@@ -657,9 +787,9 @@
                 document.getElementById('next-case').onclick = () => this.jumpToCase(this.currentCaseIdx + 1);
                 
                 document.getElementById('submit-packet').onclick = () => {
-                    if (confirm("Are you sure you want to finalize and submit all cases for this set?")) {
+                    this.showConfirm(() => {
                         this.endSession();
-                    }
+                    });
                 };
 
                 document.getElementById('logout-btn').onclick = async () => {
@@ -713,11 +843,25 @@
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
                 document.getElementById('user-display').innerText = username;
+                
+                // Inject the dynamic background anti-screenshot watermark overlays
+                this.buildWatermarkOverlay(username);
+
                 this.loadStats();
                 this.showDashboard();
-                
-                // Write validated login name to presence database entry
                 this.sendHeartbeat(username);
+            },
+
+            buildWatermarkOverlay(username) {
+                const watermarkContainer = document.getElementById('watermark-overlay');
+                watermarkContainer.innerHTML = '';
+                // Generate a grid of watermark labels containing the student's ID
+                for (let i = 0; i < 9; i++) {
+                    const el = document.createElement('div');
+                    el.className = "watermark-text";
+                    el.innerText = `${username} - UiTM R3`;
+                    watermarkContainer.appendChild(el);
+                }
             },
 
             loadStats() {
