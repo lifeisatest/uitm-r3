@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,13 +64,19 @@
 
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4">
-        <div class="glass-card p-8 rounded-2xl w-full max-w-md shadow-2xl border border-slate-700">
-            <div class="text-center mb-8">
+        <div class="glass-card p-8 rounded-2xl w-full max-w-md shadow-2xl border border-slate-700 flex flex-col">
+            <div class="text-center mb-6 flex flex-col">
                 <div class="bg-blue-600 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-900/20">
                     <i class="fas fa-x-ray text-3xl text-white"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-white uppercase tracking-tighter">UiTM R3</h1>
                 <p class="text-slate-400 mt-2 font-medium">Rapid Reporting Simulator</p>
+                
+                <!-- ADDED LINE: Live counter element directly on the Login Screen -->
+                <div class="inline-flex items-center space-x-1.5 text-[11px] bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-green-400 mt-4 mx-auto">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span><span id="live-count-login">18</span> students active online</span>
+                </div>
             </div>
 
             <form id="login-form" class="space-y-4">
@@ -99,10 +104,10 @@
                 <div class="h-4 w-px bg-slate-700"></div>
                 <span id="user-display" class="text-slate-400 text-sm"></span>
                 
-                <!-- ADDED LINE: Live counter UI element badge -->
+                <!-- ADDED LINE: Live counter inside the Dashboard header -->
                 <div class="flex items-center space-x-1.5 text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-green-400">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span><span id="live-count">18</span> active</span>
+                    <span><span id="live-count-dash">18</span> active</span>
                 </div>
             </div>
             
@@ -506,18 +511,20 @@
                 this.setupEventListeners();
                 this.renderNavGrid();
                 this.updateTotalSetsCount();
-                this.startLiveCounter(); // ADDED LINE: Initializes the dynamic counter
+                this.startLiveCounter(); // Boots engine immediately upon loading
             },
 
-            // ADDED METHOD: Creates realistic active session counter fluctuations
+            // UPDATED ENGINE: Synchronizes live random tracking fluctuations across pages
             startLiveCounter() {
+                let currentCount = 18; 
                 setInterval(() => {
-                    const countEl = document.getElementById('live-count');
-                    if (countEl) {
-                        let current = parseInt(countEl.innerText) || 18;
-                        let change = Math.random() > 0.5 ? 1 : -1;
-                        countEl.innerText = Math.max(12, Math.min(25, current + change));
-                    }
+                    let change = Math.random() > 0.5 ? 1 : -1;
+                    currentCount = Math.max(12, Math.min(25, currentCount + change));
+                    
+                    const loginEl = document.getElementById('live-count-login');
+                    const dashEl = document.getElementById('live-count-dash');
+                    if (loginEl) loginEl.innerText = currentCount;
+                    if (dashEl) dashEl.innerText = currentCount;
                 }, 5000);
             },
 
@@ -711,18 +718,15 @@
                     
                     if (isCorrectAssessment) {
                         if (c.isNormal) {
-                            // Correct Normal: Always +4 as there's no finding to miss
                             totalScore += 4;
                         } else {
-                            // Correct Abnormal: Check if observation is present
                             if (c.userObservation.trim().length > 3) {
-                                totalScore += 4; // Complete and Correct
+                                totalScore += 4;
                             } else {
-                                totalScore += 2; // Partially Correct (Correct toggle, missing/short text)
+                                totalScore += 2;
                             }
                         }
                     } else if (c.userAssessment !== null) {
-                        // Incorrect Assessment (Wrong)
                         totalScore -= 8;
                     }
                 });
