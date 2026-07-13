@@ -72,10 +72,10 @@
                 <h1 class="text-3xl font-bold text-white uppercase tracking-tighter">UiTM R3</h1>
                 <p class="text-slate-400 mt-2 font-medium">Rapid Reporting Simulator</p>
                 
-                <!-- ADDED LINE: Live counter element directly on the Login Screen -->
+                <!-- NEW/UPDATED UI: Live online user counter indicator badge on login screen -->
                 <div class="inline-flex items-center space-x-1.5 text-[11px] bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-green-400 mt-4 mx-auto">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span><span id="live-count-login">18</span> students active online</span>
+                    <span><span id="live-count-login">1</span> active online</span>
                 </div>
             </div>
 
@@ -104,10 +104,10 @@
                 <div class="h-4 w-px bg-slate-700"></div>
                 <span id="user-display" class="text-slate-400 text-sm"></span>
                 
-                <!-- ADDED LINE: Live counter inside the Dashboard header -->
+                <!-- NEW/UPDATED UI: Live online user counter indicator badge inside the workspace header -->
                 <div class="flex items-center space-x-1.5 text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-green-400">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span><span id="live-count-dash">18</span> active</span>
+                    <span><span id="live-count-dash">1</span> active</span>
                 </div>
             </div>
             
@@ -207,7 +207,11 @@
         </main>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         const MASTER_ACCESS_KEY = "UiTM2024";
         const IMAGE_FOLDER_NAME = "R3%20images";
 
@@ -498,6 +502,35 @@
             }
         });
 
+        // 🚨 CONFIGURATION STEP FOR GITHUB: 
+        // Your real-time Firebase credentials have been applied successfully below!
+        const MY_GITHUB_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyA7RveexH-YJon181UdGlLq5vLCKdY9fEQ",
+            authDomain: "uitm-r3.firebaseapp.com",
+            databaseURL: "https://uitm-r3-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "uitm-r3",
+            storageBucket: "uitm-r3.firebasestorage.app",
+            messagingSenderId: "322384326838",
+            appId: "1:322384326838:web:d714ef604bfee66c5bf617"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'uitm-r3-simulator';
+        let firebaseConfig = null;
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+            } else if (MY_GITHUB_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_FIREBASE_CONFIG_HERE") {
+                firebaseConfig = MY_GITHUB_FIREBASE_CONFIG;
+            }
+        } catch (e) {
+            console.error("Firebase config parsing error:", e);
+        }
+
+        let db = null;
+        let auth = null;
+        let userPresenceRef = null;
+        let presenceInterval = null;
+
         const app = {
             currentUser: null,
             currentSet: null,
@@ -511,21 +544,106 @@
                 this.setupEventListeners();
                 this.renderNavGrid();
                 this.updateTotalSetsCount();
-                this.startLiveCounter(); // Boots engine immediately upon loading
+                this.initPresenceTracking(); // Begins real active session synchronization
             },
 
-            // UPDATED ENGINE: Synchronizes live random tracking fluctuations across pages
-            startLiveCounter() {
-                let currentCount = 0; 
-                setInterval(() => {
-                    let change = Math.random() > 0.5 ? 1 : -1;
-                    currentCount = Math.max(12, Math.min(25, currentCount + change));
+            async initPresenceTracking() {
+                if (!firebaseConfig) {
+                    console.log("No Firebase config detected. Running mock fallback presence counter on page...");
+                    this.runSimulatedPresence();
+                    return;
+                }
+
+                try {
+                    const appInstance = initializeApp(firebaseConfig);
+                    db = getFirestore(appInstance);
+                    auth = getAuth(appInstance);
+
+                    let userCredential;
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        userCredential = await signInAnonymously(auth);
+                    }
+
+                    const user = userCredential.user;
+                    if (!user) {
+                        this.runSimulatedPresence();
+                        return;
+                    }
+
+                    const userId = user.uid;
+                    const presenceCollection = collection(db, 'artifacts', appId, 'public', 'data', 'presence');
                     
-                    const loginEl = document.getElementById('live-count-login');
-                    const dashEl = document.getElementById('live-count-dash');
-                    if (loginEl) loginEl.innerText = currentCount;
-                    if (dashEl) dashEl.innerText = currentCount;
-                }, 5000);
+                    // Listen live to user documents updated in last 45 seconds
+                    onSnapshot(presenceCollection, (snapshot) => {
+                        const now = Date.now();
+                        let activeCount = 0;
+                        snapshot.forEach((docSnap) => {
+                            const data = docSnap.data();
+                            if (data && data.lastActive) {
+                                const lastActiveTime = data.lastActive.seconds ? (data.lastActive.seconds * 1000) : data.lastActive;
+                                if (now - lastActiveTime < 45000) { 
+                                    activeCount++;
+                                }
+                            }
+                        });
+
+                        this.updateActiveUI(activeCount || 1);
+                    }, (error) => {
+                        console.error("Firestore live query failed:", error);
+                    });
+
+                    // Set personal active session heartbeat document
+                    userPresenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', userId);
+                    this.sendHeartbeat("Guest");
+
+                    presenceInterval = setInterval(() => {
+                        this.sendHeartbeat(this.currentUser || "Guest");
+                    }, 15000);
+
+                    // Unsubscribe/delete heartbeat instantly on logout or close
+                    window.addEventListener('beforeunload', async () => {
+                        if (userPresenceRef) {
+                            try {
+                                await deleteDoc(userPresenceRef);
+                            } catch (e) {}
+                        }
+                    });
+
+                } catch (err) {
+                    console.error("Cloud presence initialization failed, loading fallback counter:", err);
+                    this.runSimulatedPresence();
+                }
+            },
+
+            async sendHeartbeat(username) {
+                if (!userPresenceRef) return;
+                try {
+                    await setDoc(userPresenceRef, {
+                        username: username,
+                        lastActive: serverTimestamp()
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Heartbeat write error:", e);
+                }
+            },
+
+            runSimulatedPresence() {
+                let count = 1; // Start at 1 user (just the owner) if offline
+                this.updateActiveUI(count);
+                setInterval(() => {
+                    let drift = Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+                    count = Math.max(1, Math.min(5, count + drift));
+                    this.updateActiveUI(count);
+                }, 10000);
+            },
+
+            updateActiveUI(count) {
+                const loginCounter = document.getElementById('live-count-login');
+                const dashCounter = document.getElementById('live-count-dash');
+                if (loginCounter) loginCounter.innerText = count;
+                if (dashCounter) dashCounter.innerText = count;
             },
 
             setupEventListeners() {
@@ -537,8 +655,19 @@
                 document.getElementById('btn-abnormal').onclick = () => this.handleAssessment('abnormal');
                 document.getElementById('prev-case').onclick = () => this.jumpToCase(this.currentCaseIdx - 1);
                 document.getElementById('next-case').onclick = () => this.jumpToCase(this.currentCaseIdx + 1);
-                document.getElementById('submit-packet').onclick = () => { if(confirm("Submit all findings?")) this.endSession(); };
-                document.getElementById('logout-btn').onclick = () => location.reload();
+                
+                document.getElementById('submit-packet').onclick = () => {
+                    if (confirm("Are you sure you want to finalize and submit all cases for this set?")) {
+                        this.endSession();
+                    }
+                };
+
+                document.getElementById('logout-btn').onclick = async () => {
+                    if (userPresenceRef) {
+                        try { await deleteDoc(userPresenceRef); } catch (e) {}
+                    }
+                    location.reload();
+                };
 
                 const container = document.getElementById('img-container');
                 const img = document.getElementById('case-image');
@@ -571,8 +700,12 @@
                 const user = document.getElementById('username').value.trim();
                 const pass = document.getElementById('password').value;
                 const error = document.getElementById('login-error');
-                if (pass === MASTER_ACCESS_KEY) this.login(user);
-                else { error.innerText = "Incorrect Access Key."; error.classList.remove('hidden'); }
+                if (pass === MASTER_ACCESS_KEY) {
+                    this.login(user);
+                } else { 
+                    error.innerText = "Incorrect Access Key."; 
+                    error.classList.remove('hidden'); 
+                }
             },
 
             login(username) {
@@ -582,6 +715,9 @@
                 document.getElementById('user-display').innerText = username;
                 this.loadStats();
                 this.showDashboard();
+                
+                // Write validated login name to presence database entry
+                this.sendHeartbeat(username);
             },
 
             loadStats() {
