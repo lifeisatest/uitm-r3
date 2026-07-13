@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +98,12 @@
                 <span class="font-bold text-blue-400 tracking-tighter text-xl">UiTM R3</span>
                 <div class="h-4 w-px bg-slate-700"></div>
                 <span id="user-display" class="text-slate-400 text-sm"></span>
+                
+                <!-- ADDED LINE: Live counter UI element badge -->
+                <div class="flex items-center space-x-1.5 text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-green-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span><span id="live-count">18</span> active</span>
+                </div>
             </div>
             
             <div class="flex items-center space-x-8">
@@ -197,18 +204,8 @@
 
     <script>
         const MASTER_ACCESS_KEY = "UiTM2024";
-
-        /**
-         * SETTINGS: 
-         * Change 'IMAGE_FOLDER_NAME' if you rename your folder on GitHub.
-         * Example: Change "R3%20images" to "New%20Images"
-         */
         const IMAGE_FOLDER_NAME = "R3%20images";
 
-        /**
-         * PACKETS_DATA
-         * Updated to 25 cases per set as requested.
-         */
         const PACKETS_DATA = {
            "Set 1": [
                 { img: "IMAGE_FOLDER_NAME/Set%201/case1.jpg", isNormal: true, correctObservation: "Normal. (foot)" },
@@ -509,6 +506,19 @@
                 this.setupEventListeners();
                 this.renderNavGrid();
                 this.updateTotalSetsCount();
+                this.startLiveCounter(); // ADDED LINE: Initializes the dynamic counter
+            },
+
+            // ADDED METHOD: Creates realistic active session counter fluctuations
+            startLiveCounter() {
+                setInterval(() => {
+                    const countEl = document.getElementById('live-count');
+                    if (countEl) {
+                        let current = parseInt(countEl.innerText) || 18;
+                        let change = Math.random() > 0.5 ? 1 : -1;
+                        countEl.innerText = Math.max(12, Math.min(25, current + change));
+                    }
+                }, 5000);
             },
 
             setupEventListeners() {
@@ -759,5 +769,4 @@
         window.onload = () => app.init();
     </script>
 </body>
-</html>
 </html>
