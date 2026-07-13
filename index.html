@@ -516,7 +516,7 @@
 
             // UPDATED ENGINE: Synchronizes live random tracking fluctuations across pages
             startLiveCounter() {
-                let currentCount = 18; 
+                let currentCount = 0; 
                 setInterval(() => {
                     let change = Math.random() > 0.5 ? 1 : -1;
                     currentCount = Math.max(12, Math.min(25, currentCount + change));
